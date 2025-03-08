@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Feedback History{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h2>Feedback History</h2>
+                    <a href="/" class="btn btn-primary">Back to Evaluator</a>
+                </div>
+                <div class="card-body">
+                    {% if feedback_entries %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Resume</th>
+                                        <th>Job Title</th>
+                                        <th>Rating</th>
+                                        <th>Comments</th>
+                                        <th>Submitted At</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for feedback in feedback_entries %}
+                                    <tr>
+                                        <td>{{ feedback.id }}</td>
+                                        <td>{{ feedback.filename }}</td>
+                                        <td>{{ feedback.job_title }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-{{ 'success' if feedback.rating >= 4 else 'warning' if feedback.rating == 3 else 'danger' }} me-2">{{ feedback.rating }}</span>
+                                                <div class="star-rating">
+                                                    {% for i in range(5) %}
+                                                        {% if i < feedback.rating %}
+                                                            <i class="fas fa-star text-warning"></i>
+                                                        {% else %}
+                                                            <i class="far fa-star text-muted"></i>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ feedback.comments or 'No comments provided' }}</td>
+                                        <td>{{ feedback.submitted_at }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p class="mb-0">No feedback entries found. Once users submit feedback, they will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Card -->
+    {% if feedback_entries %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3>Feedback Statistics</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Feedback</h5>
+                                    <p class="display-4">{{ feedback_entries|length }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Average Rating</h5>
+                                    {% set total = namespace(value=0) %}
+                                    {% for feedback in feedback_entries %}
+                                        {% set total.value = total.value + feedback.rating %}
+                                    {% endfor %}
+                                    <p class="display-4">{{ "%.1f"|format(total.value / feedback_entries|length) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Rating Distribution</h5>
+                                    <div class="d-flex justify-content-between">
+                                        {% for i in range(1, 6) %}
+                                            {% set count = namespace(value=0) %}
+                                            {% for feedback in feedback_entries %}
+                                                {% if feedback.rating == i %}
+                                                    {% set count.value = count.value + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            <div class="text-center">
+                                                <div class="progress" style="height: 60px; width: 20px;">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         style="width: 100%; height: {{ (count.value / feedback_entries|length * 100)|int }}%;" 
+                                                         aria-valuenow="{{ count.value }}" aria-valuemin="0" 
+                                                         aria-valuemax="{{ feedback_entries|length }}"></div>
+                                                </div>
+                                                <div class="mt-1">{{ i }}</div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="/history" class="btn btn-outline-secondary">
+                    <i class="fas fa-history"></i> Evaluation History
+                </a>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

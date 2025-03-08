@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block title %}Evaluation History{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">Resume Evaluation History</h2>
+                    <a href="{{ url_for('index') }}" class="btn btn-light">New Evaluation</a>
+                </div>
+                <div class="card-body">
+                    {% if evaluations %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>File Name</th>
+                                    <th>Job Title</th>
+                                    <th>Match Score</th>
+                                    <th>Stability</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for eval in evaluations %}
+                                <tr>
+                                    <td>{{ eval.evaluated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ eval.filename }}</td>
+                                    <td>{{ eval.job_title }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                                                <div class="progress-bar {% if eval.rank_score >= 75 %}bg-success{% elif eval.rank_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ eval.rank_score }}%;" 
+                                                     aria-valuenow="{{ eval.rank_score }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <span>{{ eval.rank_score }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if eval.job_stability and eval.job_stability.RiskLevel %}
+                                            <span class="badge {% if eval.job_stability.RiskLevel == 'Low' %}bg-success{% elif eval.job_stability.RiskLevel == 'Medium' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ eval.job_stability.RiskLevel }} Risk
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary view-details-btn" data-id="{{ eval.id }}" data-bs-toggle="modal" data-bs-target="#evaluationModal">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No evaluation records found. <a href="{{ url_for('index') }}" class="alert-link">Create your first evaluation</a>.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Details Modal -->
+<div class="modal fade" id="evaluationModal" tabindex="-1" aria-labelledby="evaluationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="evaluationModalLabel">Resume Evaluation Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <!-- Match Score -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Match Score</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="progress" style="height: 30px; margin-bottom: 10px;">
+                                    <div id="modal-progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                </div>
+                                <span id="modal-match-score" class="fs-3 fw-bold">0%</span>
+                                
+                                <!-- Match Score Breakdown -->
+                                <div class="mt-3">
+                                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#modalScoreBreakdown" aria-expanded="false" aria-controls="modalScoreBreakdown">
+                                        View Score Breakdown
+                                    </button>
+                                    <div class="collapse mt-2" id="modalScoreBreakdown">
+                                        <div class="card card-body">
+                                            <div id="modal-match-factors">
+                                                <div class="mb-2">
+                                                    <label class="form-label mb-1">Skills Match</label>
+                                                    <div class="progress" style="height: 10px;">
+                                                        <div id="modal-skills-match" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted" id="modal-skills-match-score">0%</small>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label mb-1">Experience Match</label>
+                                                    <div class="progress" style="height: 10px;">
+                                                        <div id="modal-experience-match" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted" id="modal-experience-match-score">0%</small>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label mb-1">Education Match</label>
+                                                    <div class="progress" style="height: 10px;">
+                                                        <div id="modal-education-match" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted" id="modal-education-match-score">0%</small>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label mb-1">Industry Knowledge</label>
+                                                    <div class="progress" style="height: 10px;">
+                                                        <div id="modal-industry-match" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted" id="modal-industry-match-score">0%</small>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label mb-1">Certification Match</label>
+                                                    <div class="progress" style="height: 10px;">
+                                                        <div id="modal-certification-match" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted" id="modal-certification-match-score">0%</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Job Stability Card -->
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0">Job Stability</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="me-2">Stability Score:</span>
+                                    <div class="progress flex-grow-1" style="height: 10px;">
+                                        <div id="modal-stability-score-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="ms-2" id="modal-stability-score">0</span>
+                                </div>
+                                <p><strong>Risk Level: </strong><span id="modal-risk-level" class="badge bg-secondary">Unknown</span></p>
+                                <p><strong>Average Tenure: </strong><span id="modal-average-tenure">Unknown</span></p>
+                                <p><strong>Job Count: </strong><span id="modal-job-count">0</span></p>
+                                <div id="modal-stability-explanation" class="alert alert-light mt-2">No stability data available</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Profile Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <p id="modal-profile-summary" class="border p-3 rounded bg-light"></p>
+                                
+                                <h5 class="mt-4">Missing Keywords</h5>
+                                <div id="modal-missing-keywords" class="p-3 border rounded bg-light"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Interview Questions -->
+                        <div class="card mt-3">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Interview Questions</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="nav nav-tabs" id="modalQuestionsTab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="modal-technical-tab" data-bs-toggle="tab" data-bs-target="#modal-technical" type="button" role="tab" aria-controls="modal-technical" aria-selected="true">Technical</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="modal-nontechnical-tab" data-bs-toggle="tab" data-bs-target="#modal-nontechnical" type="button" role="tab" aria-controls="modal-nontechnical" aria-selected="false">Non-Technical</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="modal-behavioral-tab" data-bs-toggle="tab" data-bs-target="#modal-behavioral" type="button" role="tab" aria-controls="modal-behavioral" aria-selected="false">Behavioral</button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content mt-3" id="modalQuestionsTabContent">
+                                    <div class="tab-pane fade show active" id="modal-technical" role="tabpanel" aria-labelledby="modal-technical-tab">
+                                        <ul id="modal-technical-questions" class="list-group"></ul>
+                                    </div>
+                                    <div class="tab-pane fade" id="modal-nontechnical" role="tabpanel" aria-labelledby="modal-nontechnical-tab">
+                                        <ul id="modal-nontechnical-questions" class="list-group"></ul>
+                                    </div>
+                                    <div class="tab-pane fade" id="modal-behavioral" role="tabpanel" aria-labelledby="modal-behavioral-tab">
+                                        <ul id="modal-behavioral-questions" class="list-group"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const viewDetailsBtns = document.querySelectorAll('.view-details-btn');
+        viewDetailsBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const evalId = this.getAttribute('data-id');
+                loadEvaluationDetails(evalId);
+            });
+        });
+        
+        function loadEvaluationDetails(evalId) {
+            fetch(`/get_evaluation/${evalId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to fetch evaluation');
+                    return response.json();
+                })
+                .then(data => {
+                    updateEvaluationModal(data);
+                    updateInterviewQuestions({
+                        technical_questions: data.technical_questions,
+                        nontechnical_questions: data.nontechnical_questions,
+                        behavioral_questions: data.behavioral_questions
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while loading evaluation details.');
+                });
+        }
+        
+        function updateEvaluationModal(data) {
+            // Match Score
+            document.getElementById('modal-progress-bar').style.width = data.rank_score + '%';
+            document.getElementById('modal-progress-bar').textContent = data.rank_score + '%';
+            document.getElementById('modal-match-score').textContent = data.rank_score + '%';
+            
+            const progressBar = document.getElementById('modal-progress-bar');
+            progressBar.className = 'progress-bar ' + (data.rank_score >= 75 ? 'bg-success' : data.rank_score >= 50 ? 'bg-warning' : 'bg-danger');
+            
+            // Match Factors
+            const factors = data.match_factors || {};
+            document.getElementById('modal-skills-match').style.width = (factors['Skills Match'] || 0) + '%';
+            document.getElementById('modal-skills-match-score').textContent = (factors['Skills Match'] || 0) + '%';
+            document.getElementById('modal-experience-match').style.width = (factors['Experience Match'] || 0) + '%';
+            document.getElementById('modal-experience-match-score').textContent = (factors['Experience Match'] || 0) + '%';
+            document.getElementById('modal-education-match').style.width = (factors['Education Match'] || 0) + '%';
+            document.getElementById('modal-education-match-score').textContent = (factors['Education Match'] || 0) + '%';
+            document.getElementById('modal-industry-match').style.width = (factors['Industry Knowledge'] || 0) + '%';
+            document.getElementById('modal-industry-match-score').textContent = (factors['Industry Knowledge'] || 0) + '%';
+            document.getElementById('modal-certification-match').style.width = (factors['Certification Match'] || 0) + '%';
+            document.getElementById('modal-certification-match-score').textContent = (factors['Certification Match'] || 0) + '%';
+            
+            // Job Stability
+            const stability = data.job_stability || {};
+            document.getElementById('modal-stability-score-bar').style.width = (stability.StabilityScore || 0) + '%';
+            document.getElementById('modal-stability-score').textContent = stability.StabilityScore || 0;
+            const riskLevel = document.getElementById('modal-risk-level');
+            riskLevel.textContent = stability.RiskLevel || 'Unknown';
+            riskLevel.className = 'badge bg-' + (stability.RiskLevel === 'Low' ? 'success' : stability.RiskLevel === 'Medium' ? 'warning' : stability.RiskLevel === 'High' ? 'danger' : 'secondary');
+            document.getElementById('modal-average-tenure').textContent = stability.AverageJobTenure || 'Unknown';
+            document.getElementById('modal-job-count').textContent = stability.JobCount || 0;
+            document.getElementById('modal-stability-explanation').textContent = stability.ReasoningExplanation || 'No stability data available';
+            
+            // Profile Summary and Missing Keywords
+            document.getElementById('modal-profile-summary').textContent = data.profile_summary || 'No profile summary available';
+            const missingKeywordsEl = document.getElementById('modal-missing-keywords');
+            missingKeywordsEl.innerHTML = data.missing_keywords && data.missing_keywords.length > 0
+                ? '<ul>' + data.missing_keywords.map(kw => `<li>${kw}</li>`).join('') + '</ul>'
+                : 'No missing keywords identified.';
+        }
+        
+        function updateInterviewQuestions(data) {
+            const techList = document.getElementById('modal-technical-questions');
+            techList.innerHTML = data.technical_questions && data.technical_questions.length > 0 
+                ? data.technical_questions.map(q => `<li class="list-group-item">${q}</li>`).join('')
+                : '<li class="list-group-item">No technical questions available.</li>';
+            
+            const nonTechList = document.getElementById('modal-nontechnical-questions');
+            nonTechList.innerHTML = data.nontechnical_questions && data.nontechnical_questions.length > 0
+                ? data.nontechnical_questions.map(q => `<li class="list-group-item">${q}</li>`).join('')
+                : '<li class="list-group-item">No non-technical questions available.</li>';
+            
+            const behavList = document.getElementById('modal-behavioral-questions');
+            behavList.innerHTML = data.behavioral_questions && data.behavioral_questions.length > 0
+                ? data.behavioral_questions.map(q => `<li class="list-group-item">${q}</li>`).join('')
+                : '<li class="list-group-item">No behavioral questions available.</li>';
+        }
+    });
+    </script>
+
+
+{% endblock %}
